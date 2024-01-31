@@ -23,31 +23,55 @@ public class TaskController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = nameof(RoleType.User))]
+    [Authorize(Roles = $"{nameof(RoleType.User)}, {nameof(RoleType.Admin)}")]
     public async Task<IActionResult> GetTasks()
     {
-        var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-        _ = int.TryParse(claimedId, out int uid);
+        IEnumerable<Task> tasks;
+        //* For admin
+        var claimedRole = User.FindFirst(ClaimTypes.Role)!.Value;
+        if (claimedRole == nameof(RoleType.Admin))
+        {
+            tasks = await _context.Tasks.ToListAsync();
+        }
+        //* For user
+        else
+        {
+            var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            _ = int.TryParse(claimedId, out int uid);
 
-        var tasks = await _context.Tasks.Where(e => e.UserId == uid)
-                                        .AsNoTracking().ToListAsync();
+            tasks = await _context.Tasks.Where(e => e.UserId == uid)
+                                       .AsNoTracking().ToListAsync();
+        }
+
         return Ok(tasks);
     }
 
     [HttpGet("{id}", Name = "GetTask")]
-    [Authorize(Roles = nameof(RoleType.User))]
+    [Authorize(Roles = $"{nameof(RoleType.User)}, {nameof(RoleType.Admin)}")]
     public async Task<IActionResult> GetTask(int id)
     {
-        var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-        _ = int.TryParse(claimedId, out int uid);
+        Task? task = null;
+        //* For admin
+        var claimedRole = User.FindFirst(ClaimTypes.Role)!.Value;
+        if (claimedRole == nameof(RoleType.Admin))
+        {
+            task = await _context.Tasks.AsNoTracking()
+                                        .FirstOrDefaultAsync(e => e.Id == id);
+        }
+        //* For user
+        else
+        {
+            var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            _ = int.TryParse(claimedId, out int uid);
 
-        var task = await _context.Tasks.Where(e => e.UserId == uid)
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(e => e.Id == id);
+            task = await _context.Tasks.Where(e => e.UserId == uid)
+                                    .AsNoTracking()
+                                    .FirstOrDefaultAsync(e => e.Id == id);
+        }
 
         if (task == null)
         {
-            return BadRequest();
+            return NotFound();
         }
 
         return Ok(task);
@@ -61,7 +85,7 @@ public class TaskController : ControllerBase
         {
             return BadRequest(ModelState);
         }
-        
+
         var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
         _ = int.TryParse(claimedId, out int uid);
 
@@ -76,29 +100,34 @@ public class TaskController : ControllerBase
         await _context.Tasks.AddAsync(newTask);
         await _context.SaveChangesAsync();
 
-        return CreatedAtRoute(nameof(GetTask), new {id = newTask.Id}, newTask);
+        return CreatedAtRoute(nameof(GetTask), new { id = newTask.Id }, newTask);
     }
-    
+
     [HttpPut("{id:int}")]
-    [Authorize(Roles = nameof(RoleType.User))]
+    [Authorize(Roles = $"{nameof(RoleType.User)}, {nameof(RoleType.Admin)}")]
     public async Task<IActionResult> UpdateTask(int id, [FromBody] TaskDto task)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
-        var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-        _ = int.TryParse(claimedId, out int uid);
 
-        var taskExist = await _context.Tasks.FirstOrDefaultAsync(e => e.Id == id);
+        Task? taskExist = await _context.Tasks.FirstOrDefaultAsync(e => e.Id == id);
         if (taskExist == null)
         {
             return NotFound("Task not found");
         }
 
-        if (uid != taskExist.UserId)
+        var claimedRole = User.FindFirst(ClaimTypes.Role)!.Value;
+        if (claimedRole == nameof(RoleType.User))
         {
-            return BadRequest("You do not have the permission.");
+            var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            _ = int.TryParse(claimedId, out int uid);
+
+            if (uid != taskExist.UserId)
+            {
+                return BadRequest("You do not have the permission");
+            }
         }
 
         taskExist.Title = task.Title;
@@ -110,22 +139,26 @@ public class TaskController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = nameof(RoleType.User))]
+    [Authorize(Roles = $"{nameof(RoleType.User)}, {nameof(RoleType.Admin)}")]
     public async Task<IActionResult> RemoveTask(int id)
     {
-        var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-        _ = int.TryParse(claimedId, out int uid);
-
         var taskExist = await _context.Tasks.FirstOrDefaultAsync(e => e.Id == id);
         if (taskExist == null)
         {
             return NotFound("Task not found");
         }
 
-        if (uid != taskExist.UserId)
+        var claimedRole = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (claimedRole == nameof(RoleType.User))
         {
-            return BadRequest("You do not have the permission.");
+            var claimedId = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            _ = int.TryParse(claimedId, out int uid);
+            if (uid != taskExist.UserId)
+            {
+                return BadRequest("You do not have the permission.");
+            }
         }
+
         _context.Tasks.Remove(taskExist);
         await _context.SaveChangesAsync();
 
