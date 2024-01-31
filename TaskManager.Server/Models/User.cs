@@ -3,6 +3,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TaskManager.Server.Models;
 
+public enum RoleType
+{
+    Admin,
+    User
+}
+
 public class User
 {
     [Key]
@@ -11,15 +17,18 @@ public class User
     
     [Required]
     [MinLength(4, ErrorMessage = "Username must be at least 4 character long")]
-    public string Username { get; set; }
+    public required string Username { get; set; }
 
     [Required]
     [EmailAddress]
-    public string Email { get; set; }
+    public required string Email { get; set; }
 
     [Required]
-    public byte[] PasswordHash {get; set;}
+    public required byte[] PasswordHash {get; set;}
     
     [Required]
-    public byte[] PasswordSalt {get; set;}
+    public required byte[] PasswordSalt {get; set;}
+
+    [Required]
+    public required RoleType Role {get; set;}
 }
