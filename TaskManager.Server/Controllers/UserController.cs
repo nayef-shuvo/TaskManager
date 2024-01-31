@@ -1,7 +1,11 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using TaskManager.Server.Data;
 using TaskManager.Server.Models;
 using TaskManager.Server.Models.Dtos;
@@ -12,18 +16,28 @@ namespace TaskManager.Server.Controllers;
 [Route("api")]
 public class UserController : ControllerBase
 {
+    private readonly ILogger<UserController> _logger;
     private readonly ApplicationDbContext _context;
+    private readonly IConfiguration _config;
 
-    public UserController(ApplicationDbContext context)
+    public UserController(ApplicationDbContext context, IConfiguration config, ILogger<UserController> logger)
     {
+        _logger = logger;
         _context = context;
+        _config = config;
     }
 
 
     // for testing purposes
+    [Authorize(Roles = nameof(RoleType.User))]
     [HttpGet("users")]
     public async Task<IActionResult> GetUsers()
     {
+        _logger.LogInformation(nameof(RoleType.User));
+        
+        _logger.LogInformation(string.Join("\n", User.Claims));
+        
+
         var users = await _context.Users.ToListAsync();
         return Ok(users);
     }
@@ -100,21 +114,47 @@ public class UserController : ControllerBase
         {
             return BadRequest("Invalid username or password");
         }
-        return Ok(user.Username);
+
+        var jwt = GenerateJwtToken(user);
+        return Ok(new {Bearer = jwt});
     }
 
-    (byte[], byte[]) GenerateHashAndSalt(string password)
+    private (byte[], byte[]) GenerateHashAndSalt(string password)
     {
         using var hmac = new HMACSHA512();
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
         return (hash, hmac.Key);
     }
 
-    bool VerifyPassword(string password, byte[] hash, byte[] salt)
+    private bool VerifyPassword(string password, byte[] hash, byte[] salt)
     {
         using var hmac = new HMACSHA512(salt);
         var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
         return computedHash.SequenceEqual(hash);
+    }
+
+    private string GenerateJwtToken(User user)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+
+        var claims = new Claim[] 
+        {
+            new (ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Role, user.Role.ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            claims: claims,
+            issuer: _config["Jwt:Issuer"],
+            audience: _config["Jwt:Audience"],
+            expires: DateTime.Now.AddDays(1),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
 

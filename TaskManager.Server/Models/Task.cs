@@ -14,10 +14,10 @@ public class Task
     public int UserId { get; set; }
     
     [Required]    
-    public string Title { get; set; }
+    public required string Title { get; set; }
     
     [Required]
-    public string Description { get; set; }
+    public required string Description { get; set; }
 
     [Required]
     public bool Status { get; set; }
