@@ -18,6 +18,37 @@ dotnet run
 
 + For swagger support http://localhost:5076/swagger/index.html
 
+<br/>
+
+## Features
+* There are 2 roles `User` and `Admin`
+* User can create, read, update, and delete his/her's tasks
+* Admin can update, read, and delete any tasks
+* Anyone can register an account as `User`
+* For user input, data validation is handled properly
+
+
+<br/>
+
+## Database Tables
+**Table: Users**
+```
+Id               [int, auto increment]
+Username         [string, unique]
+Email            [string, valid email format]
+Role             [enum (Admin or User)]
+PasswordHash     [byte array of hashed password]
+PasswordSalt     [byte array of password salt]
+```
+**Table: Tasks**
+```
+Id               [int, auto increment]
+UserId           [int, foreign key]
+Title            [string]
+Description      [string]
+Status           [bool]
+```
+
 
 ## Endpoints
 

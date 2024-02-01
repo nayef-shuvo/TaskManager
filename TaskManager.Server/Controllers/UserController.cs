@@ -30,43 +30,43 @@ public class UserController : ControllerBase
 
     // for testing purposes
     // [Authorize(Roles = nameof(RoleType.User))]
-    [HttpGet("users")]
-    public async Task<IActionResult> GetUsers()
-    {
-        _logger.LogInformation(nameof(RoleType.User));
+    // [HttpGet("users")]
+    // public async Task<IActionResult> GetUsers()
+    // {
+    //     _logger.LogInformation(nameof(RoleType.User));
 
-        _logger.LogInformation(string.Join("\n", User.Claims));
-
-
-        var users = await _context.Users.ToListAsync();
-        return Ok(users);
-    }
-
-    [HttpGet("users/{id}")]
-    public async Task<IActionResult> GetUser(int id)
-    {
-        var user = await _context.Users.FirstOrDefaultAsync(e => e.Id == id);
-        if (user == null)
-        {
-            return NotFound();
-        }
-        return Ok(user);
-    }
-
-    [HttpDelete("users/{id}")]
-    public async Task<IActionResult> DeleteUser(int id)
-    {
-        var user = await _context.Users.FirstOrDefaultAsync(e => e.Id == id);
-        if (user == null)
-        {
-            return NotFound();
-        }
-        _context.Users.Remove(user);
+    //     _logger.LogInformation(string.Join("\n", User.Claims));
 
 
-        await _context.SaveChangesAsync();
-        return Ok(user);
-    }
+    //     var users = await _context.Users.ToListAsync();
+    //     return Ok(users);
+    // }
+
+    // [HttpGet("users/{id}")]
+    // public async Task<IActionResult> GetUser(int id)
+    // {
+    //     var user = await _context.Users.FirstOrDefaultAsync(e => e.Id == id);
+    //     if (user == null)
+    //     {
+    //         return NotFound();
+    //     }
+    //     return Ok(user);
+    // }
+
+    // [HttpDelete("users/{id}")]
+    // public async Task<IActionResult> DeleteUser(int id)
+    // {
+    //     var user = await _context.Users.FirstOrDefaultAsync(e => e.Id == id);
+    //     if (user == null)
+    //     {
+    //         return NotFound();
+    //     }
+    //     _context.Users.Remove(user);
+
+
+    //     await _context.SaveChangesAsync();
+    //     return Ok(user);
+    // }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto request)
@@ -95,7 +95,7 @@ public class UserController : ControllerBase
         }
 
 
-        //* everything ok
+        //* everything is ok
         var (hash, salt) = GenerateHashAndSalt(request.Password);
         var user = new User
         {
