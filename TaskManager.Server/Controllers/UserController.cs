@@ -29,18 +29,19 @@ public class UserController : ControllerBase
 
 
     // for testing purposes
-    [Authorize(Roles = nameof(RoleType.User))]
+    // [Authorize(Roles = nameof(RoleType.User))]
     [HttpGet("users")]
     public async Task<IActionResult> GetUsers()
     {
         _logger.LogInformation(nameof(RoleType.User));
-        
+
         _logger.LogInformation(string.Join("\n", User.Claims));
-        
+
 
         var users = await _context.Users.ToListAsync();
         return Ok(users);
     }
+
     [HttpGet("users/{id}")]
     public async Task<IActionResult> GetUser(int id)
     {
@@ -51,6 +52,7 @@ public class UserController : ControllerBase
         }
         return Ok(user);
     }
+
     [HttpDelete("users/{id}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
@@ -85,12 +87,21 @@ public class UserController : ControllerBase
             return BadRequest("Email already exists");
         }
 
+        //* checking strong password
+
+        if (!IsPasswordStrong(request.Password, out string errorMessage))
+        {
+            return BadRequest(errorMessage);
+        }
+
+
+        //* everything ok
         var (hash, salt) = GenerateHashAndSalt(request.Password);
-        var user = new User 
-        { 
-            Username = request.Username, 
-            Email = request.Email, 
-            PasswordHash = hash, 
+        var user = new User
+        {
+            Username = request.Username,
+            Email = request.Email,
+            PasswordHash = hash,
             PasswordSalt = salt,
             Role = RoleType.User
         };
@@ -110,13 +121,19 @@ public class UserController : ControllerBase
             return BadRequest("Invalid username or password");
         }
         var isPasswordCorrect = VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt);
-        if (!isPasswordCorrect) 
+        if (!isPasswordCorrect)
         {
             return BadRequest("Invalid username or password");
         }
 
         var jwt = GenerateJwtToken(user);
-        return Ok(new {Bearer = jwt});
+        return Ok(new
+        {
+            user.Username,
+            user.Email,
+            user.Role,
+            Bearer = jwt
+        });
     }
 
     private (byte[], byte[]) GenerateHashAndSalt(string password)
@@ -138,7 +155,7 @@ public class UserController : ControllerBase
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
 
-        var claims = new Claim[] 
+        var claims = new Claim[]
         {
             new (ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.Username),
@@ -157,5 +174,35 @@ public class UserController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
+    private bool IsPasswordStrong(string password, out string errorMessage)
+    {
+        char[] specialCharacters = "~`!@#$%^&*()-_=+:;,.<>/?".ToCharArray();
+        int[] digits = Enumerable.Range('0', 10).ToArray();
+        int[] capitalLetters = Enumerable.Range('A', 26).ToArray();
+        int[] smallLetters = Enumerable.Range('a', 26).ToArray();
+
+        bool hasSpecialCharacter = false;
+        bool hasDigit = false;
+        bool hasSmallLetter = false;
+        bool hasCapitalLetter = false;
+
+        foreach (var e in password)
+        {
+            if (specialCharacters.Contains(e)) hasSpecialCharacter = true;
+            else if (digits.Contains(e)) hasDigit = true;
+            else if (capitalLetters.Contains(e)) hasCapitalLetter = true;
+            else if (smallLetters.Contains(e)) hasSmallLetter = true;
+            else
+            {
+                errorMessage = $"Only these special characters are allowed {specialCharacters}";
+                return false;
+            }
+        }
+        var isOk = hasSpecialCharacter & hasDigit & hasCapitalLetter & hasSmallLetter;
+
+        errorMessage = isOk ? string.Empty : 
+                    "Password must contain at least a capital letter, a small letter, a digit, and a special character";
+        return isOk;
+    }
 
 }
