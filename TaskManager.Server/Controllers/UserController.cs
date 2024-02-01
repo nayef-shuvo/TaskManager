@@ -109,7 +109,7 @@ public class UserController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return Ok(user);
+        return Ok(new { Message = "User registration has been completed successfully" });
     }
 
     [HttpPost("login")]
@@ -200,7 +200,7 @@ public class UserController : ControllerBase
         }
         var isOk = hasSpecialCharacter & hasDigit & hasCapitalLetter & hasSmallLetter;
 
-        errorMessage = isOk ? string.Empty : 
+        errorMessage = isOk ? string.Empty :
                     "Password must contain at least a capital letter, a small letter, a digit, and a special character";
         return isOk;
     }
