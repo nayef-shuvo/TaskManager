@@ -40,6 +40,8 @@ POST /`api/register`
 }
 ```
 
+<img src="/screenshots/register.png">
+
 <br/>
 
 + #### Login
@@ -65,3 +67,115 @@ POST /`api/login`
 }
 ```
 
+<img src="/screenshots/login.png">
+
+* #### Getting All Tasks
+GET `/api/tasks`
+
+* Response
+```
+[
+  {
+    "id": 1,
+    "userId": 8,
+    "title": "First task (update)",
+    "description": "This is the first task",
+    "status": false
+  },
+  {
+    "id": 2,
+    "userId": 8,
+    "title": "updated title",
+    "description": "updated description",
+    "status": true
+  },
+  {
+    "id": 3,
+    "userId": 8,
+    "title": "Task3",
+    "description": "Testing Put endpoint",
+    "status": false
+  },
+  {
+    "id": 14,
+    "userId": 8,
+    "title": "New Task",
+    "description": "New task description",
+    "status": true
+  }
+]
+```
+<img src="/screenshots/getall.png">
+
+* #### Getting Task by Id
+
+GET `/api/tasks/:id`
+
+* Reponse
+```
+{
+  "id": 1,
+  "userId": 8,
+  "title": "First task (update)",
+  "description": "This is the first task",
+  "status": false
+}
+```
+<img src="screenshots/getbyid.png">
+
+* #### Creating New Task
+POST `/api/tasks/`
+* Request
+
+```
+{
+  "title": "Task Title",
+  "description": "Task description",
+  "status": false
+}
+```
+* Response
+```
+{
+  "id": 15,
+  "userId": 8,
+  "title": "Task Title",
+  "description": "Task description",
+  "status": false
+}
+```
+
+<img src="/screenshots/create.png">
+
+* #### Updating Task by Id
+PUT `/api/tasks/:id`
+
+* Request
+```
+{
+  "title": "Updated Task Title",
+  "description": "Updated task description",
+  "status": true
+}
+```
+
+* Response
+```
+{
+  "id": 15,
+  "userId": 8,
+  "title": "Updated Task Title",
+  "description": "Updated task description",
+  "status": true
+}
+```
+<img src= "/screenshots/update.png">
+
+* #### Deleting a Task by Id
+DELETE `/api/tasks/:id`
+
+* Response Header
+```
+204 No Content
+```
+<img src="/screenshots/delete.png">
